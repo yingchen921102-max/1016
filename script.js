@@ -24,36 +24,44 @@ function updateToday() {
   dateInput.min = toLocalDateValue(now);
 }
 
+const taskStatuses = {
+  pending: { label: "待處理", className: "status-pending" },
+  progress: { label: "進行中", className: "status-progress" },
+  done: { label: "已完成", className: "status-done" }
+};
+
 function updateTaskProgress() {
   const items = [...document.querySelectorAll("#task-list .task-item")];
-  const complete = items.filter((item) => item.querySelector("input[type=checkbox]").checked).length;
+  const complete = items.filter((item) => item.querySelector(".task-status-select").value === "done").length;
   const count = items.length;
   document.querySelector("#task-count").textContent = `${complete} / ${count} 完成`;
   document.querySelector("#progress-text").innerHTML = `${complete} <small>/ ${count} 已完成</small>`;
 
   items.forEach((item) => {
-    const checkbox = item.querySelector("input[type=checkbox]");
-    const status = item.querySelector(".task-status");
+    const checkbox = item.querySelector(".task-complete");
+    const statusSelect = item.querySelector(".task-status-select");
+    const status = taskStatuses[statusSelect.value] || taskStatuses.pending;
+    checkbox.checked = statusSelect.value === "done";
     item.classList.toggle("is-complete", checkbox.checked);
-    if (checkbox.checked) {
-      status.className = "task-status status-done";
-      status.textContent = "已完成";
-    } else if (item.dataset.started === "true") {
-      status.className = "task-status status-progress";
-      status.textContent = "進行中";
-    } else {
-      status.className = "task-status status-pending";
-      status.textContent = "待處理";
-    }
+    statusSelect.className = `task-status-select ${status.className}`;
   });
 }
 
-document.querySelector("#task-list").addEventListener("change", (event) => {
-  if (!event.target.matches("input[type=checkbox]")) return;
+function syncTaskStatus(event) {
   const item = event.target.closest(".task-item");
-  if (!event.target.checked) item.dataset.started = "true";
+  if (!item) return;
+  const statusSelect = item.querySelector(".task-status-select");
+  if (event.target.matches(".task-complete")) {
+    statusSelect.value = event.target.checked ? "done" : "pending";
+  } else if (event.target.matches(".task-status-select")) {
+    item.querySelector(".task-complete").checked = event.target.value === "done";
+  } else {
+    return;
+  }
   updateTaskProgress();
-});
+}
+
+document.querySelector("#task-list").addEventListener("change", syncTaskStatus);
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
